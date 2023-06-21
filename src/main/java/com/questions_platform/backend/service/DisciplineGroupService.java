@@ -4,10 +4,11 @@ import com.questions_platform.backend.domain.Discipline;
 import com.questions_platform.backend.domain.StudentGroup;
 import com.questions_platform.backend.repository.DisciplineRepository;
 import com.questions_platform.backend.repository.StudentGroupRepository;
+import com.questions_platform.backend.util.DisciplineNotFoundException;
+import com.questions_platform.backend.util.GroupNotFoundException;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.Set;
 
 @Service
 public class DisciplineGroupService {
@@ -20,8 +21,12 @@ public class DisciplineGroupService {
         this.disciplineRepository = disciplineRepository;
     }
 
-    public List<Discipline> findAll(){
+    public List<Discipline> findAllDiscipline(){
         return disciplineRepository.findAll();
+    }
+
+    public List<StudentGroup> findAllGroup(){
+        return groupRepository.findAll();
     }
 
     public List<Discipline> findByGroupId(Long id){
@@ -29,35 +34,34 @@ public class DisciplineGroupService {
     }
 
     public Discipline saveDiscipline(Discipline discipline){
-        return disciplineRepository.save(discipline);
+        return disciplineRepository.saveAndFlush(discipline);
     }
 
     public Discipline findDisciplineById(Long id){
-        return disciplineRepository.findById(id)  // TODO добавить кастомный эксепшен
-                .orElseThrow( () -> new RuntimeException("Discipline not found!"));
+        return disciplineRepository.findById(id)
+                .orElseThrow( () -> new DisciplineNotFoundException(id));
     }
 
-    public StudentGroup saveGroup(StudentGroup studentGroup){
-        return groupRepository.save(studentGroup);
+    public void saveGroup(StudentGroup studentGroup){
+        groupRepository.save(studentGroup);
     }
 
     public StudentGroup findGroupById(Long id){
-        return groupRepository.findById(id)  // TODO добавить кастомный эксепшен
-                .orElseThrow( () -> new RuntimeException("Group not found!"));
+        return groupRepository.findById(id)
+                .orElseThrow( () -> new GroupNotFoundException(id));
     }
 
     public Discipline changeGroupDiscipline(Long disciplineId, Long groupId){
         Discipline discipline = findDisciplineById(disciplineId);
-        Set<StudentGroup> groups = discipline.getGroups();
         StudentGroup group = findGroupById(groupId);
 
-        if (groups.contains(group)){
-            groups.remove(group);
-        } else {
-            groups.add(group);
+        for (var g : discipline.getGroups()){
+            if (g.equals(group)){
+                discipline.getGroups().remove(group);
+                return saveDiscipline(discipline);
+            }
         }
-
-        discipline.setGroups(groups);
+        discipline.getGroups().add(group);
         return saveDiscipline(discipline);
     }
 }

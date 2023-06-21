@@ -1,5 +1,6 @@
 package com.questions_platform.backend.domain;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -20,11 +21,7 @@ public class StudentGroup {
     private String name;
 
     // links
-    @ManyToMany
-    @JoinTable(
-            name = "group_discipline",
-            joinColumns = { @JoinColumn(name = "group_id", referencedColumnName = "id")},
-            inverseJoinColumns = { @JoinColumn(name = "discipline_id", referencedColumnName = "id") }
-    )
+    @ManyToMany(mappedBy = "groups")
+    @JsonIgnore
     private Set<Discipline> disciplines = new HashSet<>();
 }

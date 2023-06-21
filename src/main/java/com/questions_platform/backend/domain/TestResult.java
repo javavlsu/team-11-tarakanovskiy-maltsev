@@ -24,4 +24,9 @@ public class TestResult {
     @JoinColumn(name = "test_id")
     @JsonIgnore
     private StudentTest test;
+
+    @ManyToOne
+    @JoinColumn(name = "student_id")
+    @JsonIgnore
+    private User student;
 }

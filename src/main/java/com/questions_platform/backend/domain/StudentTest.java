@@ -5,7 +5,9 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 @Data
@@ -22,14 +24,23 @@ public class StudentTest {
     private String name;
     @Column(name = "date_end")
     private LocalDate dateOfEnd;
-    @Column(name = "is_available") // TODO посмотреть columnDefinition поставить false mb
+    @Column(name = "is_available")
     private Boolean isAvailable;
 
-    // links TODO добавить создателя теста??, студентов прошедших тест
+    // links TODO добавить создателя теста??
     @ManyToOne
     @JoinColumn(name = "discipline_id")
     @JsonIgnore
     private Discipline discipline;
+
+    @ManyToMany
+    @JoinTable(
+            name = "test_user",
+            joinColumns = { @JoinColumn(name = "test_id", referencedColumnName = "id")},
+            inverseJoinColumns = { @JoinColumn(name = "user_id", referencedColumnName = "id") }
+    )
+    @JsonIgnore
+    private List<User> passedStudent = new ArrayList<>();
 
     @OneToMany(mappedBy = "test", cascade = {CascadeType.PERSIST})
     @JsonIgnore

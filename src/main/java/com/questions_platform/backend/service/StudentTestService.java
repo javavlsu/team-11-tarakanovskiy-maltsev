@@ -2,10 +2,16 @@ package com.questions_platform.backend.service;
 
 import com.questions_platform.backend.domain.StudentTest;
 import com.questions_platform.backend.domain.TestResult;
+import com.questions_platform.backend.domain.User;
+import com.questions_platform.backend.repository.DisciplineRepository;
 import com.questions_platform.backend.repository.StudentTestRepository;
 import com.questions_platform.backend.repository.TestResultRepository;
+import com.questions_platform.backend.repository.UserRepository;
+import com.questions_platform.backend.util.ResultNotFoundException;
+import com.questions_platform.backend.util.TestNotFoundException;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @Service
@@ -13,59 +19,91 @@ public class StudentTestService {
     private final StudentTestRepository testRepository;
     private final TestResultRepository resultRepository;
     private final TestQuestionService questionService;
+    private final DisciplineRepository disciplineRepository;
+    private final UserRepository userRepository;
 
     public StudentTestService(StudentTestRepository testRepository,
                               TestResultRepository resultRepository,
-                              TestQuestionService questionService) {
+                              TestQuestionService questionService,
+                              DisciplineRepository disciplineRepository,
+                              UserRepository userRepository) {
         this.testRepository = testRepository;
         this.resultRepository = resultRepository;
         this.questionService = questionService;
+        this.disciplineRepository = disciplineRepository;
+        this.userRepository = userRepository;
     }
 
-    // for teacher
     public List<StudentTest> findAllByDisciplineId(Long id) {
         return testRepository.findAllByDisciplineId(id);
     }
 
-    // for teacher/student
     public StudentTest findById(Long id) {
-        return testRepository.findById(id)  // TODO добавить кастомный эксепшен
-                .orElseThrow(() -> new RuntimeException("Test not found!"));
+        return testRepository.findById(id)
+                .orElseThrow(() -> new TestNotFoundException(id));
     }
 
-    public List<StudentTest> findAllAvailableTest(Long studentId) { // TODO добавить реализацию
-        return testRepository.findAllByIsAvailableEquals(true);
+    public List<StudentTest> findAllAvailableTest(Long studentId) {
+        User user = userRepository.findById(studentId).orElseThrow();
+        return testRepository.findAll().stream()
+                .filter(studentTest -> !studentTest.getPassedStudent().contains(user)
+                && studentTest.getIsAvailable().equals(true)
+                && studentTest.getDateOfEnd().equals(LocalDate.now()))
+                .toList();
     }
 
-    public List<StudentTest> findAllPassedTest(Long studentId) {  // TODO добавить реализацию ()
-        return null;
+    public List<StudentTest> findAllPassedTest(Long studentId) {
+        User user = userRepository.findById(studentId).orElseThrow();
+        return testRepository.findAll().stream()
+                .filter(studentTest -> studentTest.getPassedStudent().contains(user))
+                .toList();
     }
 
-    public TestResult saveTestResult(List<String> answers, Long testId) {  // TODO добавить сет пользователя
+    public void saveTestResult(List<String> answers, Long testId, Long userId) {
         TestResult testResult = new TestResult();
-        testResult.setTest(findById(testId));
+        StudentTest test = findById(testId);
+        User user = userRepository.findById(userId).orElseThrow();
+        test.getPassedStudent().add(user);
+        testResult.setTest(test);
+        testResult.setStudent(user);
         List<String> correctAnswers = questionService.findTestCorrectAnswers(testId);
         testResult.setScore((double) (errorList(correctAnswers, answers).size() / correctAnswers.size()));
-        return resultRepository.save(testResult);
+        save(test);
+        resultRepository.save(testResult);
+    }
+
+    public TestResult findResult(Long testId, Long userId){
+        return resultRepository.findByTestIdAndStudentId(testId, userId)
+                .orElseThrow( () -> new ResultNotFoundException(testId));
     }
 
     public List<String> errorList(List<String> correct, List<String> check) {
         return correct.stream()
-                .filter(element -> !check.contains(element))
+                .filter(check::contains)
                 .toList();
     }
 
-    public StudentTest save(StudentTest test) {
-        return testRepository.save(test);
+    public void save(StudentTest studentTest){
+        testRepository.save(studentTest);
     }
 
-    public StudentTest changeTestAvailable(Long id) {
+    public void saveWithDiscipline(StudentTest test, Long disciplineId) {
+        test.setDiscipline(disciplineRepository.findById(disciplineId)
+                .orElseThrow());
+        testRepository.save(test);
+    }
+
+    public void changeTestAvailable(Long id) {
         StudentTest test = findById(id);
         test.setIsAvailable(!test.getIsAvailable());
-        return testRepository.save(test);
+        testRepository.save(test);
     }
 
     public void delete(Long id) {
         testRepository.deleteById(id);
+    }
+
+    public List<TestResult> findAllResult(Long testId) {
+        return resultRepository.findAllByTestId(testId);
     }
 }
