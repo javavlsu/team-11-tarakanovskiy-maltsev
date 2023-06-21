@@ -22,6 +22,7 @@ public class TestAnswer {
     // links
     @ManyToOne
     @JoinColumn(name = "question_id")
+    @JsonIgnore
     private TestQuestion question;
 
 }
