@@ -3,7 +3,9 @@ package com.questions_platform.backend.service;
 import com.questions_platform.backend.domain.TestAnswer;
 import com.questions_platform.backend.domain.TestQuestion;
 import com.questions_platform.backend.dto.TestQuestionDto;
+import com.questions_platform.backend.repository.StudentTestRepository;
 import com.questions_platform.backend.repository.TestQuestionRepository;
+import com.questions_platform.backend.util.QuestionNotFoundException;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -13,20 +15,20 @@ import java.util.List;
 public class TestQuestionService {
     private final TestQuestionRepository testQuestionRepository;
     private final TestAnswerService testAnswerService;
+    private final StudentTestRepository studentTestRepository;
 
     public TestQuestionService(TestQuestionRepository testQuestionRepository,
-                               TestAnswerService testAnswerService) {
+                               TestAnswerService testAnswerService, StudentTestRepository studentTestRepository) {
         this.testQuestionRepository = testQuestionRepository;
         this.testAnswerService = testAnswerService;
+        this.studentTestRepository = studentTestRepository;
     }
 
     public List<TestQuestionDto> findAllByTestId(Long testId) {
         List<TestQuestionDto> questions = testQuestionRepository.findAllByTestId(testId).stream()
                 .map(TestQuestionDto::new).toList();
-        questions.stream()
-                .peek(q -> q.setAnswers(testAnswerService.findAllByQuestionId(q.getId())))
+        return questions.stream().peek(q -> q.setAnswers(testAnswerService.findAllByQuestionId(q.getId())))
                 .toList();
-        return questions;
     }
 
     public List<String> findTestCorrectAnswers(Long testId){
@@ -43,11 +45,17 @@ public class TestQuestionService {
         return answer.getText();
     }
 
-    public TestQuestion save(TestQuestion testQuestion) {
-        return testQuestionRepository.saveAndFlush(testQuestion);
+    public void save(TestQuestion testQuestion, Long testId) {
+        testQuestion.setTest(studentTestRepository.findById(testId).orElseThrow());
+        testQuestionRepository.saveAndFlush(testQuestion);
     }
 
     public void delete(Long questionId) {
         testQuestionRepository.deleteById(questionId);
+    }
+
+    public TestQuestion findById(Long questionId) {
+        return testQuestionRepository.findById(questionId)
+                .orElseThrow( () -> new QuestionNotFoundException(questionId));
     }
 }
