@@ -12,6 +12,8 @@ import com.questions_platform.backend.util.TestNotFoundException;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 @Service
@@ -35,7 +37,11 @@ public class StudentTestService {
     }
 
     public List<StudentTest> findAllByDisciplineId(Long id) {
-        return testRepository.findAllByDisciplineId(id);
+        return testRepository.findAllByDisciplineId(id).stream()
+                .filter(t -> t.getIsAvailable().equals(true)
+                        && t.getDateOfEnd().isAfter(LocalDate.now())
+                )
+                .toList();
     }
 
     public StudentTest findById(Long id) {
@@ -48,7 +54,7 @@ public class StudentTestService {
         return testRepository.findAll().stream()
                 .filter(studentTest -> !studentTest.getPassedStudent().contains(user)
                 && studentTest.getIsAvailable().equals(true)
-                && studentTest.getDateOfEnd().equals(LocalDate.now()))
+                && studentTest.getDateOfEnd().isAfter(LocalDate.now()))
                 .toList();
     }
 
@@ -59,7 +65,7 @@ public class StudentTestService {
                 .toList();
     }
 
-    public void saveTestResult(List<String> answers, Long testId, Long userId) {
+    public void saveTestResult(HashMap<String, String> answers, Long testId, Long userId) {
         TestResult testResult = new TestResult();
         StudentTest test = findById(testId);
         User user = userRepository.findById(userId).orElseThrow();
@@ -67,7 +73,9 @@ public class StudentTestService {
         testResult.setTest(test);
         testResult.setStudent(user);
         List<String> correctAnswers = questionService.findTestCorrectAnswers(testId);
-        testResult.setScore((double) (errorList(correctAnswers, answers).size() / correctAnswers.size()));
+        List<String> userAns = new ArrayList<>(answers.values());
+        userAns.remove(0); // delete _csrf token
+        testResult.setScore((double) (errorList(correctAnswers, userAns).size() / correctAnswers.size()));
         save(test);
         resultRepository.save(testResult);
     }
@@ -84,12 +92,13 @@ public class StudentTestService {
     }
 
     public void save(StudentTest studentTest){
+        if (studentTest.getIsAvailable() == null){
+            studentTest.setIsAvailable(false);
+        }
         testRepository.save(studentTest);
     }
 
-    public void saveWithDiscipline(StudentTest test, Long disciplineId) {
-        test.setDiscipline(disciplineRepository.findById(disciplineId)
-                .orElseThrow());
+    public void saveWithDiscipline(StudentTest test) {
         testRepository.save(test);
     }
 
@@ -105,5 +114,9 @@ public class StudentTestService {
 
     public List<TestResult> findAllResult(Long testId) {
         return resultRepository.findAllByTestId(testId);
+    }
+
+    public List<StudentTest> findAll() {
+        return testRepository.findAll();
     }
 }

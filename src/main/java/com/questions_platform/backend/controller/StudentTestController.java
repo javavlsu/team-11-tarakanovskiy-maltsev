@@ -1,21 +1,22 @@
 package com.questions_platform.backend.controller;
 
-import com.questions_platform.backend.domain.*;
-import com.questions_platform.backend.dto.TestQuestionDto;
+import com.questions_platform.backend.domain.StudentTest;
+import com.questions_platform.backend.domain.TestAnswer;
+import com.questions_platform.backend.domain.TestQuestion;
+import com.questions_platform.backend.domain.User;
 import com.questions_platform.backend.service.StudentTestService;
 import com.questions_platform.backend.service.TestAnswerService;
 import com.questions_platform.backend.service.TestQuestionService;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
+import java.util.HashMap;
 
-@RestController
-@RequestMapping("/api/test")
-@CrossOrigin
+@Controller
+@RequestMapping("/test")
 public class StudentTestController {
     private final StudentTestService studentTestService;
     private final TestQuestionService testQuestionService;
@@ -30,78 +31,77 @@ public class StudentTestController {
     }
 
     @GetMapping("{disciplineId}")
-    public ResponseEntity<List<StudentTest>> findAllTestByDiscipline(@PathVariable Long disciplineId){
-        List<StudentTest> tests = studentTestService.findAllByDisciplineId(disciplineId);
-        return ResponseEntity.ok(tests);
+    public String findAllTestByDiscipline(@PathVariable Long disciplineId, Model model){
+        model.addAttribute("tests", studentTestService.findAllByDisciplineId(disciplineId));
+        return "test";
     }
 
     @GetMapping("/available")
-    public ResponseEntity<List<StudentTest>> findAvailableTests(@AuthenticationPrincipal User user){
-        List<StudentTest> tests = studentTestService.findAllAvailableTest(user.getId());
-        return ResponseEntity.ok(tests);
+    public String findAvailableTests(@AuthenticationPrincipal User user, Model model){
+        model.addAttribute("tests", studentTestService.findAllAvailableTest(user.getId()));
+        return "test";
     }
 
     @GetMapping("/passed")
-    public ResponseEntity<List<StudentTest>> findPassedTests(@AuthenticationPrincipal User user){
-        List<StudentTest> tests = studentTestService.findAllPassedTest(user.getId());
-        return ResponseEntity.ok(tests);
+    public String findPassedTests(@AuthenticationPrincipal User user, Model model){
+        model.addAttribute("tests", studentTestService.findAllPassedTest(user.getId()));
+        return "passedTest";
     }
 
     @PreAuthorize("hasAuthority('TEACHER')")
     @GetMapping("/available/change/{testId}")
-    public ResponseEntity<HttpStatus> changeAvailable(@PathVariable Long testId){
+    public String changeAvailable(@PathVariable Long testId){
         studentTestService.changeTestAvailable(testId);
-        return ResponseEntity.ok(HttpStatus.OK);
+        return "redirect:/teacher";
     }
 
     @GetMapping("/question/{testId}")
-    public ResponseEntity<List<TestQuestionDto>> findAllQuestionByTest(@PathVariable Long testId){
-        List<TestQuestionDto> questions = testQuestionService.findAllByTestId(testId);
-        return ResponseEntity.ok(questions);
+    public String findAllQuestionByTest(@PathVariable Long testId, Model model){
+        model.addAttribute("testId", testId);
+        model.addAttribute("questions", testQuestionService.findAllByTestId(testId));
+        return "question";
     }
 
     @GetMapping("/result/{testId}")
-    public ResponseEntity<TestResult> findTestResult(@PathVariable Long testId,
-                                                     @AuthenticationPrincipal User user){
-        TestResult result = studentTestService.findResult(testId, user.getId());
-        return ResponseEntity.ok(result);
+    public String findTestResult(@PathVariable Long testId,
+                                 @AuthenticationPrincipal User user,
+                                 Model model){
+        model.addAttribute("result", studentTestService.findResult(testId, user.getId()));
+        return "result";
     }
 
     @PreAuthorize("hasAuthority('TEACHER')")
     @GetMapping("/result/all/{testId}")
-    public ResponseEntity<List<TestResult>> findAllTestResults(@PathVariable Long testId){
-        List<TestResult> results = studentTestService.findAllResult(testId);
-        return ResponseEntity.ok(results);
+    public String findAllTestResults(@PathVariable Long testId, Model model){
+        model.addAttribute("result", studentTestService.findAllResult(testId));
+        return "result";
     }
 
     @PreAuthorize("hasAuthority('TEACHER')")
-    @PostMapping("{disciplineId}")
-    public ResponseEntity<HttpStatus> addTest(@RequestBody StudentTest studentTest,
-                               @PathVariable Long disciplineId){
-        studentTestService.saveWithDiscipline(studentTest, disciplineId);
-        return ResponseEntity.ok(HttpStatus.CREATED);
+    @PostMapping
+    public String addTest(StudentTest studentTest){
+        studentTestService.saveWithDiscipline(studentTest);
+        return "redirect:/teacher";
     }
     @PreAuthorize("hasAuthority('TEACHER')")
     @PostMapping("/question/{testId}")
-    public ResponseEntity<HttpStatus> addQuestion(@RequestBody TestQuestion question,
-                                                  @PathVariable Long testId){
+    public String addQuestion(TestQuestion question, @PathVariable Long testId){
         testQuestionService.save(question, testId);
-        return ResponseEntity.ok(HttpStatus.CREATED);
+        return "redirect:/teacher";
     }
 
     @PreAuthorize("hasAuthority('TEACHER')")
     @PostMapping("/answers/{questionId}")
-    public ResponseEntity<HttpStatus> addAnswers(@RequestBody List<TestAnswer> answers,
-                                                 @PathVariable Long questionId){
-        testAnswerService.saveAll(answers, questionId);
-        return ResponseEntity.ok(HttpStatus.CREATED);
+    public String addAnswers(TestAnswer answer, @PathVariable Long questionId){
+        testAnswerService.save(answer, questionId);
+        return "redirect:/teacher";
     }
 
     @PostMapping("/result/{testId}")
-    public ResponseEntity<HttpStatus> saveTestResult(@RequestBody List<String> answer,
-                                                     @PathVariable Long testId,
-                                                     @AuthenticationPrincipal User user){
+    public String saveTestResult(@RequestParam HashMap<String, String> answer,
+                                 @PathVariable Long testId,
+                                 @AuthenticationPrincipal User user){
         studentTestService.saveTestResult(answer, testId, user.getId());
-        return ResponseEntity.ok(HttpStatus.OK);
+        return "redirect:/";
     }
 }

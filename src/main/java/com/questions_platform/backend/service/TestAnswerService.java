@@ -25,10 +25,17 @@ public class TestAnswerService {
                 .map(TestAnswerDto::new).toList();
     }
 
-    public void saveAll(List<TestAnswer> testAnswer, Long questionId){
+    public List<TestAnswer> findAllById(Long id){
+        return testAnswerRepository.findAllByQuestionId(id);
+    }
+
+    public void save(TestAnswer testAnswer, Long questionId){
         TestQuestion question = testQuestionRepository.findById(questionId).orElseThrow();
-        for (var t : testAnswer) { t.setQuestion(question);}
-        testAnswerRepository.saveAll(testAnswer);
+        testAnswer.setQuestion(question);
+        if (testAnswer.getIsCorrect() == null){
+            testAnswer.setIsCorrect(false);
+        }
+        testAnswerRepository.save(testAnswer);
     }
 
     public TestAnswer findCorrectByQuestionId(Long questionId) {

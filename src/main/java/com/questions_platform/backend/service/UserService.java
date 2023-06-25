@@ -29,7 +29,7 @@ public class UserService {
 
     public boolean isUserExist(User user){
         Optional<User> dbUser = userRepository.findByUsername(user.getUsername());
-        return dbUser.isEmpty();
+        return dbUser.isPresent();
     }
 
     public void createStudent(User user){
@@ -66,6 +66,8 @@ public class UserService {
         user.setGroup(group);
         save(user);
     }
+
+
 
     public void changePassword(String password, Long id){
         User user = findById(id);

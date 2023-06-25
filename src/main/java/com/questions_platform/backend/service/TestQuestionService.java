@@ -31,6 +31,10 @@ public class TestQuestionService {
                 .toList();
     }
 
+    public List<TestQuestion> findByTestId(Long testId) {
+        return testQuestionRepository.findAllByTestId(testId);
+    }
+
     public List<String> findTestCorrectAnswers(Long testId){
         List<String> answers = new ArrayList<>();
         List<TestQuestionDto> questions = findAllByTestId(testId);

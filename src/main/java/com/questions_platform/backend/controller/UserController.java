@@ -2,15 +2,12 @@ package com.questions_platform.backend.controller;
 
 import com.questions_platform.backend.domain.User;
 import com.questions_platform.backend.service.UserService;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
-
-@RestController
-@RequestMapping("/api/user")
-@CrossOrigin
+@Controller
+@RequestMapping("/user")
 public class UserController {
     private final UserService userService;
 
@@ -19,34 +16,38 @@ public class UserController {
     }
 
     @GetMapping
-    public ResponseEntity<List<User>> findAll(){
-        List<User> users = userService.findAll();
-        return ResponseEntity.ok(users);
+    public String findAll(Model model){
+        model.addAttribute("users", userService.findAll());
+        return "admin";
     }
 
     @GetMapping("{userId}")
-    public ResponseEntity<HttpStatus> addGroup(@PathVariable Long userId,
-                                               @RequestParam Long groupId){
+    public String addGroup(@PathVariable Long userId, @RequestParam Long groupId){
         userService.addGroup(userId, groupId);
-        return ResponseEntity.ok(HttpStatus.CREATED);
+        return "redirect:/admin";
     }
 
     @PostMapping("/student")
-    public ResponseEntity<HttpStatus> createStudent(User user){
+    public String createStudent(@ModelAttribute(name = "student") User user){
         userService.createStudent(user);
-        return ResponseEntity.ok(HttpStatus.CREATED);
+        return "redirect:/admin";
     }
 
     @PostMapping("/teacher")
-    public ResponseEntity<HttpStatus> createTeacher(User user){
+    public String createTeacher(@ModelAttribute(name = "teacher") User user){
         userService.createTeacher(user);
-        return ResponseEntity.ok(HttpStatus.CREATED);
+        return "redirect:/admin";
+    }
+
+    @GetMapping("/add/{userId}/{groupId}")
+    public String addStudentForGroup(@PathVariable Long userId, @PathVariable Long groupId){
+        userService.addGroup(userId, groupId);
+        return "redirect:/admin";
     }
 
     @PostMapping("/pass/{userId}")
-    public ResponseEntity<HttpStatus> changePassword(@PathVariable Long userId,
-                                                     @RequestBody String password){
+    public String changePassword(@PathVariable Long userId, @RequestParam String password){
         userService.changePassword(password, userId);
-        return ResponseEntity.ok(HttpStatus.OK);
+        return "redirect:/admin";
     }
 }

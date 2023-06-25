@@ -4,17 +4,14 @@ import com.questions_platform.backend.domain.Discipline;
 import com.questions_platform.backend.domain.StudentGroup;
 import com.questions_platform.backend.domain.User;
 import com.questions_platform.backend.service.DisciplineGroupService;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
-
-@RestController
-@RequestMapping("/api/discipline")
-@CrossOrigin
+@Controller
+@RequestMapping("/discipline")
 public class DisciplineGroupController {
     private final DisciplineGroupService disciplineGroupService;
 
@@ -22,45 +19,30 @@ public class DisciplineGroupController {
         this.disciplineGroupService = disciplineGroupService;
     }
 
-    @PreAuthorize("hasAnyAuthority('TEACHER', 'ADMIN')")
-    @GetMapping
-    public ResponseEntity<List<Discipline>> findAllDiscipline() {
-        List<Discipline> disciplines = disciplineGroupService.findAllDiscipline();
-        return ResponseEntity.ok(disciplines);
-    }
-
-    @PreAuthorize("hasAuthority('TEACHER')")
-    @GetMapping("/group")
-    public ResponseEntity<List<StudentGroup>> findAllGroup() {
-        List<StudentGroup> groups = disciplineGroupService.findAllGroup();
-        return ResponseEntity.ok(groups);
-    }
-
-    @GetMapping("/byGroup/{id}")
-    public ResponseEntity<List<Discipline>> findAllDisciplineByGroup(@AuthenticationPrincipal User user) {
-        List<Discipline> disciplines = disciplineGroupService.findByGroupId(user.getGroup().getId());
-        return ResponseEntity.ok(disciplines);
+    @GetMapping("/byGroup")
+    public String findAllDisciplineByGroup(@AuthenticationPrincipal User user, Model model) {
+        model.addAttribute("disciplines", disciplineGroupService.findByGroupId(user.getGroup().getId()));
+        return "discipline";
     }
 
     @PreAuthorize("hasAuthority('ADMIN')")
     @PostMapping
-    public ResponseEntity<HttpStatus> addDiscipline(@RequestBody Discipline discipline) {
+    public String addDiscipline(Discipline discipline) {
         disciplineGroupService.saveDiscipline(discipline);
-        return ResponseEntity.ok(HttpStatus.CREATED);
+        return "redirect:/admin";
     }
 
     @PreAuthorize("hasAuthority('ADMIN')")
     @PostMapping("/group")
-    public ResponseEntity<HttpStatus> addGroup(@RequestBody StudentGroup group) {
+    public String addGroup(StudentGroup group) {
         disciplineGroupService.saveGroup(group);
-        return ResponseEntity.ok(HttpStatus.CREATED);
+        return "redirect:/admin";
     }
 
     @PreAuthorize("hasAuthority('TEACHER')")
-    @PostMapping("/group/{disciplineId}")
-    public ResponseEntity<Discipline> addGroupForDiscipline(@PathVariable Long disciplineId,
-                                                            @RequestParam("groupId") Long groupId) {
-        Discipline discipline = disciplineGroupService.changeGroupDiscipline(disciplineId, groupId);
-        return ResponseEntity.ok(discipline);
+    @GetMapping("/group/{disciplineId}/{groupId}")
+    public String addGroupForDiscipline(@PathVariable Long disciplineId, @PathVariable Long groupId) {
+        disciplineGroupService.changeGroupDiscipline(disciplineId, groupId);
+        return "redirect:/teacher";
     }
 }
